@@ -1,0 +1,173 @@
+---
+title: "Module 3 - Visualization and EDA- Part 3"
+author: "Matthew Lawlor"
+date: "10/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library (tidyverse)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+  
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+##Load the weather data
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10,
+    month = lubridate::floor_date(date, unit = "month")) %>%
+  select(name, id, everything())
+
+weather_df
+```
+
+## `group_by`
+
+```{r}
+weather_df %>% 
+  group_by(name, month)
+  ## ungroup(month) removes group structure
+```
+
+## counting things
+
+count month observations
+
+```{r}
+weather_df %>%
+  group_by(name, month) %>% 
+  summarize(n_obs = n())
+```
+
+we can use `count()`
+
+```{r}
+weather_df %>% 
+  count(name, month, name = "n_obs")
+```
+
+**Never** use base R's `table`
+
+```{r, eval = FALSE}
+weather_df %>% 
+  pull(month) %>% 
+  table()
+```
+
+other helpful counters
+
+```{r}
+weather_df %>%
+  group_by(name, month) %>% 
+  summarize(
+    n_obs = n(),
+    n_days = n_distinct(date))
+```
+
+## A digression on 2x2 tables
+
+```{r}
+weather_df %>% 
+  filter(name != "Waikiki_HA") %>% ##filter != things not equal to Waikiki
+  mutate(
+    cold = case_when(
+      tmax <  5 ~ "cold",
+      tmax >= 5 ~ "not cold",
+      TRUE      ~ ""
+    )
+  ) %>% 
+  group_by (name, cold) %>% 
+  summarize(count = n())
+  ## could turn this into 2x2 table using pivot_wider
+```
+
+```{r}
+weather_df %>% 
+  filter(name != "Waikiki_HA") %>% ##filter != things not equal to Waikiki
+  mutate(
+    cold = case_when(
+      tmax <  5 ~ "cold",
+      tmax >= 5 ~ "not cold",
+      TRUE      ~ ""
+    )
+  ) %>% 
+  janitor::tabyl(name, cold)  ##note this is a dataframe, as opposed to base R "table" function
+```
+
+## General summaries
+
+You can do lots of summaries.
+
+```{r}
+weather_df %>% 
+  group_by(name, month) %>% 
+  summarize(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    mean_prcp = mean(prcp, na.rm = TRUE),
+    median_tmin = median(tmin, na.rm = TRUE)
+  )
+```
+
+This is a dataframe! So, we can make a plot.
+
+```{r}
+weather_df %>% 
+  group_by(name, month) %>% 
+  summarize(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    mean_prcp = mean(prcp, na.rm = TRUE),
+    median_tmin = median(tmin, na.rm = TRUE)
+  ) %>%
+  ggplot(aes(x = month, y = mean_tmax, color = name)) +
+  geom_point() +
+  geom_line()
+
+```
+
+Suppose you want to summarize many columns.
+
+```{r}
+weather_df %>% 
+  group_by(name, month) %>% 
+  summarize(across(prcp:tmin, mean)
+  )
+```
+
+Reminder: sometimes your results are easier to read in another format
+
+```{r}
+weather_df %>% 
+  group_by(name, month) %>% 
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE)) %>% 
+  pivot_wider(
+    names_from = name,
+    values_from = mean_tmax) %>% 
+  knitr::kable(digits = 1)
+```
+
+
