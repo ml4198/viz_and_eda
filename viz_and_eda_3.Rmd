@@ -2,7 +2,7 @@
 title: "Module 3 - Visualization and EDA- Part 3"
 author: "Matthew Lawlor"
 date: "10/12/2020"
-output: html_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -208,4 +208,9 @@ weather_df %>%
     temp_change_sd = sd(temp_change, na.rm = TRUE)
 )
 ```
+
+
+## Quick note
+
+summarize only gets you so far. Single number output
 
