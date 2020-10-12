@@ -64,7 +64,7 @@ weather_df %>%
   summarize(n_obs = n())
 ```
 
-we can use `count()`
+we can use `count`
 
 ```{r}
 weather_df %>% 
@@ -170,4 +170,42 @@ weather_df %>%
   knitr::kable(digits = 1)
 ```
 
+## `group_by` and `mutate`
+
+```{r}
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    centered_tmax = tmax - mean_tmax
+  ) %>% 
+  ggplot(aes(x = date, y = centered_tmax, color = name)) +
+  geom_point()
+```
+
+What about window functions
+
+ranking...
+```{r}
+weather_df %>% 
+  group_by(name, month) %>% 
+  mutate(
+    temp_rank = min_rank(tmax)) %>% ##can also use desc() to reverse order of min_rank
+  filter(temp_rank == 1)
+```
+
+lag: moves variables down a row...
+
+```{r}
+weather_df %>% 
+  group_by(name) %>%
+  mutate(
+    ##lag_temp = lag(tmax),
+    temp_change = tmax - lag(tmax)
+    ) %>% 
+  summarize(
+    temp_change_max = max(temp_change, na.rm = TRUE),
+    temp_change_sd = sd(temp_change, na.rm = TRUE)
+)
+```
 
